@@ -1,27 +1,41 @@
+package Week2;
+
+import java.util.Scanner;
+
 public class Main {
     public static void main(String[] args) {
-        // 1. Create Courses
-        Course cs101 = new Course("CS101", "Introduction to Java", 3);
-        Course cs102 = new Course("CS102", "Data Structures", 4);
+        Scanner scanner = new Scanner(System.in);
 
-        // 2. Create Lecturer
-        Lecturer lecturer = new Lecturer(501, "Dr. Alan Turing", "Computer Science");
+        System.out.println("=== STUDENT RESULT PROCESSING SYSTEM ===");
+        
+        int id = UtilityFunctions.readIntInput(scanner, "Enter Student ID: ");
+        System.out.print("Enter Student Name: ");
+        String name = scanner.nextLine();
+        System.out.print("Enter Department: ");
+        String dept = scanner.nextLine();
 
-        // 3. Create Student
-        Student student = new Student(1001, "Alex Morgan", "Computer Science", 200);
+        Student student = new Student(id, name, dept);
 
-        // 4. Demonstrate Methods & Interactions
-        System.out.println("=== COURSE & LECTURER DETAILS ===");
-        cs101.displayCourseInfo();
-        lecturer.displayLecturerDetails();
-        lecturer.teachCourse(cs101);
+        int numCourses = UtilityFunctions.readIntInput(scanner, "How many courses to enter? ");
 
-        System.out.println("\n=== ADDING GRADES FOR STUDENT ===");
-        // Alex gets an A (4.0) in CS101 (3 units) and a B (3.0) in CS102 (4 units)
-        student.addCourseGrade(4.0, cs101.getCreditUnits());
-        student.addCourseGrade(3.0, cs102.getCreditUnits());
+        for (int i = 1; i <= numCourses; i++) {
+            System.out.println("\n--- Course " + i + " ---");
+            double score = UtilityFunctions.readScoreInput(scanner, "Enter score (0-100): ");
+            int units = UtilityFunctions.readIntInput(scanner, "Enter credit units: ");
 
-        System.out.println("\n=== STUDENT PROFILE ===");
-        student.displayStudentProfile();
+            double gradePoint = GradeCalculator.convertScoreToPoint(score);
+            student.addResult(gradePoint, units);
+
+            System.out.println("Recorded: Grade " + GradeCalculator.convertScoreToGrade(score) + 
+                               " (" + gradePoint + " pts)");
+        }
+
+        System.out.println("\n=== SUMMARY RESULT ===");
+        System.out.println("Student: " + student.getName() + " (ID: " + student.getStudentId() + ")");
+        System.out.println("Department: " + student.getDepartment());
+        double gpa = ResultProcessor.calculateGPA(student);
+        System.out.printf("Final GPA: %.2f / 5.00\n", gpa);
+
+        scanner.close();
     }
 }
