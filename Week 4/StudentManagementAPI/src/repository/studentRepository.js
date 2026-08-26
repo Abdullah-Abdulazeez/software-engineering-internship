@@ -24,29 +24,13 @@ class StudentRepository {
     return rows[0] || null;
   }
 
-  static async create(firstName, lastName, email, phone) {
-    const [result] = await pool.execute(
-      'INSERT INTO students (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)',
-      [firstName, lastName, email, phone]
-    );
-    return result.insertId;
-  }
-
-  static async update(id, firstName, lastName, email, phone) {
-    const [result] = await pool.execute(
-      'UPDATE students SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE student_id = ?',
-      [firstName, lastName, email, phone, id]
-    );
-    return result.affectedRows;
-  }
-
-  static async delete(id) {
-    const [result] = await pool.execute(
-      'DELETE FROM students WHERE student_id = ?',
-      [id]
-    );
-    return result.affectedRows;
-  }
+static async create(firstName, lastName, email, phone) {
+  const [result] = await pool.execute(
+    'INSERT INTO students (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)',
+    [firstName, lastName, email, phone || null]
+  );
+  return result.insertId;
+}
 }
 
 module.exports = StudentRepository;
