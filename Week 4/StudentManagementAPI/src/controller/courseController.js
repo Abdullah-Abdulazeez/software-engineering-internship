@@ -10,28 +10,10 @@ class CourseController {
     }
   }
 
-  static async getCourseById(req, res) {
-    try {
-      const course = await CourseService.getCourseById(req.params.id);
-      return res.status(200).json(course);
-    } catch (err) {
-      return res.status(err.statusCode || 500).json({ status: err.statusCode || 500, message: err.message });
-    }
-  }
-
   static async createCourse(req, res) {
     try {
       const course = await CourseService.createCourse(req.body);
       return res.status(201).json({ message: 'Course created successfully', data: course });
-    } catch (err) {
-      return res.status(err.statusCode || 500).json({ status: err.statusCode || 500, message: err.message });
-    }
-  }
-
-  static async updateCourse(req, res) {
-    try {
-      const course = await CourseService.updateCourse(req.params.id, req.body);
-      return res.status(200).json({ message: 'Course updated successfully', data: course });
     } catch (err) {
       return res.status(err.statusCode || 500).json({ status: err.statusCode || 500, message: err.message });
     }

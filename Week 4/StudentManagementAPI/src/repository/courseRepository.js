@@ -3,7 +3,7 @@ const pool = require('../config/db');
 class CourseRepository {
   static async findAll() {
     const [rows] = await pool.query(
-      'SELECT course_id AS id, course_code AS courseCode, course_name AS courseName, credit_unit AS creditUnit FROM courses'
+      'SELECT course_id AS id, course_code AS courseCode, course_name AS courseName, credit_unit AS creditUnit FROM courses ORDER BY course_id DESC'
     );
     return rows;
   }
@@ -24,24 +24,19 @@ class CourseRepository {
     return rows[0] || null;
   }
 
-  static async create(code, name, units) {
+  static async create(courseCode, courseName, creditUnit) {
     const [result] = await pool.execute(
       'INSERT INTO courses (course_code, course_name, credit_unit) VALUES (?, ?, ?)',
-      [code, name, units]
+      [courseCode, courseName, creditUnit || 3]
     );
     return result.insertId;
   }
 
-  static async update(id, code, name, units) {
-    const [result] = await pool.execute(
-      'UPDATE courses SET course_code = ?, course_name = ?, credit_unit = ? WHERE course_id = ?',
-      [code, name, units, id]
-    );
-    return result.affectedRows;
-  }
-
   static async delete(id) {
-    const [result] = await pool.execute('DELETE FROM courses WHERE course_id = ?', [id]);
+    const [result] = await pool.execute(
+      'DELETE FROM courses WHERE course_id = ?',
+      [id]
+    );
     return result.affectedRows;
   }
 }
