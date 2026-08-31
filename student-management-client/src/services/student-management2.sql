@@ -1,0 +1,10 @@
+USE student_management;
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('ADMIN', 'STAFF', 'STUDENT') DEFAULT 'STAFF',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

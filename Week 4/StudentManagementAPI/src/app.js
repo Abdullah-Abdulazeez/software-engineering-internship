@@ -1,30 +1,31 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const AuthController = require('./controller/authController');
 const StudentController = require('./controller/studentController');
 const CourseController = require('./controller/courseController');
+const authenticateToken = require('./middleware/authMiddleware');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Student Routes
+// Public Auth Endpoints
+app.post('/api/auth/register', AuthController.register);
+app.post('/api/auth/login', AuthController.login);
+
+// Student Endpoints (Protected: POST, PUT, DELETE require Token)
 app.get('/api/students', StudentController.getAllStudents);
 app.get('/api/students/:id', StudentController.getStudentById);
-app.post('/api/students', StudentController.createStudent);
-app.put('/api/students/:id', StudentController.updateStudent);
-app.delete('/api/students/:id', StudentController.deleteStudent);
+app.post('/api/students', authenticateToken, StudentController.createStudent);
+app.put('/api/students/:id', authenticateToken, StudentController.updateStudent);
+app.delete('/api/students/:id', authenticateToken, StudentController.deleteStudent);
 
-// Course Routes
+// Course Endpoints
 app.get('/api/courses', CourseController.getAllCourses);
-app.post('/api/courses', CourseController.createCourse);
-app.delete('/api/courses/:id', CourseController.deleteCourse);
-
-// Global 404
-app.use((req, res) => {
-  res.status(404).json({ status: 404, message: `Cannot ${req.method} ${req.originalUrl}` });
-});
+app.post('/api/courses', authenticateToken, CourseController.createCourse);
+app.delete('/api/courses/:id', authenticateToken, CourseController.deleteCourse);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
