@@ -5,6 +5,7 @@ const AuthController = require('./controller/authController');
 const StudentController = require('./controller/studentController');
 const CourseController = require('./controller/courseController');
 const authenticateToken = require('./middleware/authMiddleware');
+const authorizeRole = require('./middleware/authorizeRole');
 
 const app = express();
 
@@ -15,17 +16,26 @@ app.use(express.json());
 app.post('/api/auth/register', AuthController.register);
 app.post('/api/auth/login', AuthController.login);
 
-// Student Endpoints (Protected: POST, PUT, DELETE require Token)
-app.get('/api/students', StudentController.getAllStudents);
-app.get('/api/students/:id', StudentController.getStudentById);
-app.post('/api/students', authenticateToken, StudentController.createStudent);
-app.put('/api/students/:id', authenticateToken, StudentController.updateStudent);
-app.delete('/api/students/:id', authenticateToken, StudentController.deleteStudent);
+// Student Endpoints
+app.get('/api/students', authenticateToken, StudentController.getAllStudents);
+app.get('/api/students/:id', authenticateToken, StudentController.getStudentById);
+
+// Staff & Admin can create and update students
+app.post('/api/students', authenticateToken, authorizeRole('ADMIN', 'STAFF'), StudentController.createStudent);
+app.put('/api/students/:id', authenticateToken, authorizeRole('ADMIN', 'STAFF'), StudentController.updateStudent);
+
+// ONLY Admin can delete students
+app.delete('/api/students/:id', authenticateToken, authorizeRole('ADMIN'), StudentController.deleteStudent);
 
 // Course Endpoints
-app.get('/api/courses', CourseController.getAllCourses);
-app.post('/api/courses', authenticateToken, CourseController.createCourse);
-app.delete('/api/courses/:id', authenticateToken, CourseController.deleteCourse);
+app.get('/api/courses', authenticateToken, CourseController.getAllCourses);
+app.post('/api/courses', authenticateToken, authorizeRole('ADMIN', 'STAFF'), CourseController.createCourse);
+app.delete('/api/courses/:id', authenticateToken, authorizeRole('ADMIN'), CourseController.deleteCourse);
+
+// Global 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ status: 404, message: `Route ${req.method} ${req.originalUrl} not found` });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
