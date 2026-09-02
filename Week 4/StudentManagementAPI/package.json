@@ -2,9 +2,10 @@
   "name": "student-management-api",
   "version": "1.0.0",
   "main": "src/app.js",
-  "scripts": {
-    "start": "node src/app.js"
-  },
+ "scripts": {
+  "start": "node src/app.js",
+  "test": "jest --runInBand --detectOpenHandles"
+},
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
@@ -12,5 +13,9 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.9.7"
+  },
+  "devDependencies": {
+    "jest": "^30.5.1",
+    "supertest": "^7.2.2"
   }
 }
