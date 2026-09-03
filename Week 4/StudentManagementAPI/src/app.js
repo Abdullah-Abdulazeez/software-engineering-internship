@@ -38,6 +38,7 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`Student Management REST API running on http://localhost:${PORT}`);
 });
