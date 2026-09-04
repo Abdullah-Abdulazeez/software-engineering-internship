@@ -1,5 +1,7 @@
-const API_BASE_URL = 'http://localhost:5000/api';
-
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api` 
+  : 'http://localhost:5000/api';
+  
 const handleResponse = async (res) => {
   const isJson = res.headers.get('content-type')?.includes('application/json');
   const data = isJson ? await res.json() : null;

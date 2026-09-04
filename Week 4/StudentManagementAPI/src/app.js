@@ -43,3 +43,9 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`Student Management REST API running on http://localhost:${PORT}`);
 });
+
+app.use(cors({
+  origin: '*', // Or specify: ['https://your-site-name.netlify.app']
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
