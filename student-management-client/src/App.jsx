@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import StudentForm from './components/StudentForm';
 import StudentList from './components/StudentList';
 import Footer from './components/Footer';
+import AuthModal from './components/AuthModal';
 import {
   fetchAllStudents,
   createStudent,
@@ -24,12 +25,26 @@ export default function App() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [notification, setNotification] = useState(null);
 
-  // New Course Input State
+  // Auth State
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [newCourse, setNewCourse] = useState({ courseCode: '', courseName: '', creditUnit: 3 });
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) setUser(JSON.parse(savedUser));
+  }, []);
 
   const notify = (message, isError = false) => {
     setNotification({ message, isError });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    notify('Logged out successfully');
   };
 
   const loadData = useCallback(async () => {
@@ -43,7 +58,7 @@ export default function App() {
       setStudents(sData);
       setCourses(cData);
     } catch (err) {
-      setError(err.message || 'Unable to connect to backend server.');
+      setError(err.message || 'Unable to load data.');
     } finally {
       setLoading(false);
     }
@@ -51,18 +66,21 @@ export default function App() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, user]);
 
-  // Student Actions
   const handleStudentSubmit = async (formData) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     try {
       if (editingStudent) {
         await updateStudent(editingStudent.id, formData);
-        notify(`Updated ${formData.firstName} successfully!`);
+        notify(`Updated ${formData.firstName}!`);
         setEditingStudent(null);
       } else {
         await createStudent(formData);
-        notify(`Registered ${formData.firstName} successfully!`);
+        notify(`Registered ${formData.firstName}!`);
       }
       await loadData();
     } catch (err) {
@@ -72,6 +90,14 @@ export default function App() {
   };
 
   const handleDeleteStudent = async (id, name) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (user.role !== 'ADMIN') {
+      notify('Forbidden: Only ADMINs can delete students.', true);
+      return;
+    }
     if (!window.confirm(`Delete ${name}?`)) return;
     try {
       await deleteStudent(id);
@@ -82,10 +108,12 @@ export default function App() {
     }
   };
 
-  // Course Actions
   const handleCourseSubmit = async (e) => {
     e.preventDefault();
-    if (!newCourse.courseCode || !newCourse.courseName) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     try {
       await createCourse(newCourse);
       notify(`Added course ${newCourse.courseCode}!`);
@@ -96,28 +124,38 @@ export default function App() {
     }
   };
 
-  const handleDeleteCourse = async (id, code) => {
-    if (!window.confirm(`Delete course ${code}?`)) return;
-    try {
-      await deleteCourse(id);
-      notify(`Deleted course ${code}.`);
-      await loadData();
-    } catch (err) {
-      notify(err.message, true);
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Floating Alert Banner */}
+      {/* Top Session Bar */}
+      <div className="bg-slate-800 text-slate-300 px-6 py-2 text-xs flex justify-between items-center">
+        <span>
+          {user ? (
+            <>Signed in as <strong className="text-white">{user.name}</strong> ({user.role})</>
+          ) : (
+            'Viewing as Guest (Read-Only)'
+          )}
+        </span>
+        {user ? (
+          <button onClick={handleLogout} className="text-red-400 hover:underline">Log Out</button>
+        ) : (
+          <button onClick={() => setShowAuthModal(true)} className="text-blue-400 hover:underline font-semibold">
+            Sign In / Register
+          </button>
+        )}
+      </div>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={(u) => { setUser(u); notify(`Welcome back, ${u.name}!`); }}
+      />
+
       {notification && (
-        <div
-          className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold transition-all ${
-            notification.isError ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'
-          }`}
-        >
+        <div className={`fixed top-12 right-5 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold ${
+          notification.isError ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'
+        }`}>
           {notification.message}
         </div>
       )}
@@ -135,10 +173,7 @@ export default function App() {
                 searchTerm=""
                 onSearchChange={() => {}}
                 onRetry={loadData}
-                onEdit={(s) => {
-                  setEditingStudent(s);
-                  setActiveTab('Students');
-                }}
+                onEdit={(s) => { setEditingStudent(s); setActiveTab('Students'); }}
                 onDelete={handleDeleteStudent}
               />
             </div>
@@ -159,10 +194,7 @@ export default function App() {
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               onRetry={loadData}
-              onEdit={(s) => {
-                setEditingStudent(s);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onEdit={(s) => { setEditingStudent(s); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               onDelete={handleDeleteStudent}
             />
           </div>
@@ -173,50 +205,24 @@ export default function App() {
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-bold text-slate-800 mb-4">Add New Course</h3>
               <form onSubmit={handleCourseSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Course Code *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CSC301"
-                    value={newCourse.courseCode}
-                    onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Course Name *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Operating Systems"
-                    value={newCourse.courseName}
-                    onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow cursor-pointer transition"
-                >
+                <input
+                  type="text"
+                  placeholder="Course Code"
+                  value={newCourse.courseCode}
+                  onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value })}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Course Name"
+                  value={newCourse.courseName}
+                  onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <button type="submit" className="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold">
                   Add Course
                 </button>
               </form>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {courses.map((course) => (
-                <div key={course.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex justify-between items-center">
-                  <div>
-                    <h4 className="font-bold text-slate-800">{course.courseCode}</h4>
-                    <p className="text-xs text-slate-500">{course.courseName}</p>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteCourse(course.id, course.courseCode)}
-                    className="px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 rounded-md cursor-pointer transition"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -224,8 +230,8 @@ export default function App() {
         {activeTab === 'About' && (
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <h3 className="text-xl font-bold text-slate-800">Student Management System Web 1.0</h3>
-            <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-              Full-stack system integrating React, Tailwind CSS, Express, and MySQL built for the NIIT SE Internship.
+            <p className="text-sm text-slate-600 mt-2">
+              Full-stack system deployed with React on Netlify, Express on Render, and MySQL on Aiven Cloud.
             </p>
           </div>
         )}
